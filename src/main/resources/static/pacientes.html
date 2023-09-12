@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lista de Estudiantes</title>
+  <!-- Importamos Bootstrap CSS desde el CDN -->
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+</head>
+<body>
+<div class="container mt-5">
+  <h1 class="text-center mb-4">Lista de Estudiantes</h1>
+  <table class="table" id="tabla-estudiantes">
+    <thead>
+    <tr>
+      <th scope="col">#</th>
+      <th scope="col">Nombre</th>
+      <th scope="col">Apellido</th>
+      <th scope="col">Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- Las filas de la tabla serán llenadas por JavaScript -->
+    </tbody>
+  </table>
+  <!-- ... -->
+  <div class="container mt-5">
+    <div id="formulario-edicion" style="display: none;">
+      <h1 class="text-center mb-4">Editar Estudiante</h1>
+      <form>
+        <input type="hidden" id="input-id">
+        <div class="form-group">
+          <label for="input-nombre">Nombre</label>
+          <input type="text" class="form-control" id="input-nombre">
+        </div>
+        <div class="form-group">
+          <label for="input-apellido">Apellido</label>
+          <input type="text" class="form-control" id="input-apellido">
+        </div>
+        <button type="button" class="btn btn-primary" onclick="modificarEstudiante()">Guardar</button>
+        <button type="button" class="btn btn-secondary" onclick="cancelarEdicion()">Cancelar</button>
+      </form>
+    </div>
+    <div id="lista-estudiantes">
+      <table class="table" id="tabla-estudiantes">
+        <!-- ... -->
+      </table>
+    </div>
+  </div>
+  <!-- ... -->
+</div>
+<!-- Importamos Bootstrap JavaScript desde el CDN -->
+<script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<script>
+window.onload = function() {
+  fetch('http://localhost:8080/pacientes')
+    .then(response => response.json())
+    .then(estudiantes => {
+      const tablaEstudiantes = document.getElementById('tabla-estudiantes').getElementsByTagName('tbody')[0];
+      estudiantes.forEach(estudiante => {
+        const newRow = tablaEstudiantes.insertRow();
+        newRow.innerHTML = `
+          <th scope="row">${estudiante.id}</th>
+          <td>${estudiante.nombre}</td>
+          <td>${estudiante.apellido}</td>
+          <td>
+            <button class="btn btn-primary" onclick="editarEstudiante(${estudiante.id})">Editar</button>
+            <button class="btn btn-danger" onclick="eliminarEstudiante(${estudiante.id})">Eliminar</button>
+          </td>`;
+      });
+    });
+};
+
+function editarEstudiante(id) {
+  fetch(`http://localhost:8080/estudiantes/${id}`)
+    .then(response => response.json())
+    .then(estudiante => {
+      document.getElementById('input-id').value = estudiante.id;
+      document.getElementById('input-nombre').value = estudiante.nombre;
+      document.getElementById('input-apellido').value = estudiante.apellido;
+      document.getElementById('lista-estudiantes').style.display = 'none';
+      document.getElementById('formulario-edicion').style.display = 'block';
+    });
+}
+
+function cancelarEdicion() {
+  document.getElementById('formulario-edicion').style.display = 'none';
+  document.getElementById('lista-estudiantes').style.display = 'block';
+}
+
+function modificarEstudiante() {
+  const id = document.getElementById('input-id').value;
+  const nombre = document.getElementById('input-nombre').value;
+  const apellido = document.getElementById('input-apellido').value;
+
+  fetch(`http://localhost:8080/pacientes`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ nombre, apellido, id }),
+  })
+    .then(response => {
+      if(response.ok) {
+        // Si la respuesta fue exitosa, actualiza la tabla y vuelve a la lista.
+        const tablaEstudiantes = document.getElementById('tabla-estudiantes').getElementsByTagName('tbody')[0];
+        const fila = Array.from(tablaEstudiantes.children).find(row => row.getElementsByTagName('th')[0].textContent == id);
+        fila.children[1].textContent = nombre;
+        fila.children[2].textContent = apellido;
+        cancelarEdicion();
+      } else {
+        console.error('Error al modificar el estudiante:', response);
+      }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function eliminarEstudiante(id) {
+  fetch(`http://localhost:8080/pacientes/${id}`, {
+    method: 'DELETE',
+  })
+  .then(response => {
+    if(response.ok) {
+      // Si la respuesta fue exitosa, elimina la fila de la tabla.
+      const tablaEstudiantes = document.getElementById('tabla-estudiantes').getElementsByTagName('tbody')[0];
+      const rowIndex = Array.from(tablaEstudiantes.children).findIndex(row => row.getElementsByTagName('th')[0].textContent == id);
+      tablaEstudiantes.deleteRow(rowIndex);
+    } else {
+      console.error('Error al eliminar el estudiante:', response);
+    }
+  })
+  .catch(error => console.error('Error:', error));
+}
+</script>
+
+</body>
+</html>
